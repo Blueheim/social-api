@@ -27,23 +27,21 @@ exports.createUser = async (req, res) => {
 
   // TODO: transaction
 
-  const user = await model.dbCreate(req.body);
+  const user = await model.dbCreate(req.body, "local");
 
   // Create user in remote auth api
-  const fetchResult = await fetch(`${config.get("AUTH_API_URL")}/api/users/`, {
-    method: "post",
-    body: JSON.stringify(_.pick(req.body, ["email", "password"])),
-    headers: { "Content-Type": "application/json" }
-  });
+  // const fetchResult = await fetch(`${config.get("AUTH_API_URL")}/api/users/`, {
+  //   method: "post",
+  //   body: JSON.stringify(_.pick(req.body, ["email", "password"])),
+  //   headers: { "Content-Type": "application/json" }
+  // });
 
-  const fetchData = await fetchResult.json();
+  //const fetchData = await fetchResult.json();
 
   const token = user.generateAuthToken();
 
   const resUser = _.pick(user, ["_id", "name", "email"]);
+  resUser.token = token;
 
-  res
-    .header("x-auth-token", token)
-    .status(201)
-    .json(resUser);
+  res.status(201).json(resUser);
 };

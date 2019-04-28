@@ -7,6 +7,7 @@ const api = require("./startup/api");
 const passportSetup = require("./startup/passport-setup");
 const errorMiddleware = require("./middleware/error");
 const cors = require("cors");
+const flash = require("connect-flash");
 
 const logger = require("./lib/logger")();
 const errorHandler = new ErrorHandler(logger);
@@ -21,6 +22,7 @@ app.use(
     origin: config.get("CLIENT_ORIGIN_URL")
   })
 );
+
 passportSetup(app);
 api(app);
 

@@ -13,24 +13,48 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: false,
       minlength: 5,
-      maxlength: 50,
-      required: true
+      maxlength: 255
     },
     email: {
       type: String,
       required: false,
       minlength: 5,
-      maxlength: 255,
-      required: true
+      maxlength: 255
     },
-    lastAuth: {
+    password: {
+      type: String,
+      required: false,
+      minlength: 5,
+      maxlength: 1024
+    },
+    authToken: {
+      type: String,
+      required: false,
+      minlength: 5,
+      maxlength: 1024
+    },
+    google: {
       id: {
-        type: mongoose.Schema.Types.ObjectId
+        type: String,
+        required: false
       },
-      authType: {
-        type: String
+      name: String,
+      email: {
+        type: String,
+        required: false
+      }
+    },
+    facebook: {
+      id: {
+        type: String,
+        required: false
+      },
+      name: String,
+      email: {
+        type: String,
+        required: false
       }
     }
   },
@@ -62,9 +86,25 @@ userSchema.statics.dbGetByEmail = async function(email) {
   return this.findOne({ email: email }).exec();
 };
 
-userSchema.statics.dbCreate = async function(user) {
-  const document = new this(_.pick(user, ["name", "email"]));
-  return document.save();
+userSchema.statics.dbCreate = async function(user, strategy) {
+  let document;
+  switch (strategy) {
+    case "local":
+      document = new this(_.pick(user, ["name", "email", "password"]));
+      const salt = await bcrypt.genSalt(10);
+      document.password = await bcrypt.hash(document.password, salt);
+      //return _.pick(await document.save(), ['_id', 'name', 'email']);
+      return document.save();
+      break;
+    case "google":
+    case "facebook":
+      document = new this(user);
+      //return _.pick(await document.save(), ['_id', [`${strategy}`].name, [`${strategy}`].email]);
+      return document.save();
+      break;
+    default:
+      throw new Error(`Strategy ${strategy} unknown`);
+  }
 };
 
 userSchema.statics.comparePassword = async function(candidatePassword, hash) {
@@ -90,7 +130,9 @@ userSchema.methods.dbSetAuthToken = async function(token) {
   } else {
     this.authToken = token;
   }
-  return this.save();
+  const user = await this.save();
+
+  return _.pick(user, ["_id", "name", "email", "authToken"]);
 };
 
 // ----------------------   MODEL CREATION --------------------------------
